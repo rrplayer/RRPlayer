@@ -68,7 +68,8 @@ class PrefUIViewController: NSViewController, MASPreferencesViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    oscPositionPopupBtnAction(oscPositionPopupButton)
+    //oscPositionPopupBtnAction(oscPositionPopupButton) //暂不使用位置设置
+    
     setupGeometryRelatedControls()
     setupResizingRelatedControls()
   }

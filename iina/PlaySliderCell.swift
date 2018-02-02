@@ -51,6 +51,9 @@ class PlaySliderCell: NSSliderCell {
 
   var isPausedBeforeSeeking = false
 
+  /// 跟随中
+  var isTracking = false
+  
   override func awakeFromNib() {
     minValue = 0
     maxValue = 100
@@ -151,6 +154,7 @@ class PlaySliderCell: NSSliderCell {
       playerCore.togglePause(true)
       playerCore.mainWindow.thumbnailPeekView.isHidden = true
     }
+    isTracking = true
     return result
   }
 
@@ -158,6 +162,7 @@ class PlaySliderCell: NSSliderCell {
     if !isPausedBeforeSeeking {
       playerCore.togglePause(false)
     }
+    isTracking = false
     super.stopTracking(last: lastPoint, current: stopPoint, in: controlView, mouseIsUp: flag)
   }
 

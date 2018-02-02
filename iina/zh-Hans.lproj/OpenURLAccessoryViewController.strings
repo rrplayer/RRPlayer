@@ -12,7 +12,7 @@
 "rXA-dB-SEo.title" = "Safari";
 
 /* Class = "NSTextFieldCell"; title = "Use our browser extension to open video right from webpages."; ObjectID = "sTz-HN-gNY"; */
-"sTz-HN-gNY.title" = "使用 IINA 的浏览器插件来直接播放网页中的视频（需要 youtube-dl 支持）。";
+"sTz-HN-gNY.title" = "使用 RRPlayer 的浏览器插件来直接播放网页中的视频（需要 youtube-dl 支持）。";
 
 /* Class = "NSTextFieldCell"; title = "Password"; ObjectID = "u3h-zB-uPz"; */
 "u3h-zB-uPz.title" = "密码";

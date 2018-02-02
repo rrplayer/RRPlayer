@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="13196" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="13771" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="13196"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="13771"/>
         <capability name="box content view" minToolsVersion="7.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="PrefAdvancedViewController" customModule="IINA" customModuleProvider="target">
+        <customObject id="-2" userLabel="File's Owner" customClass="PrefAdvancedViewController" customModule="RRPlayer" customModuleProvider="target">
             <connections>
                 <outlet property="chooseConfigDirBtn" destination="hbF-n4-jl3" id="QYy-Do-vje"/>
                 <outlet property="enableSettingsBtn" destination="ymk-Ax-TcO" id="9Lx-0u-h5t"/>
@@ -27,13 +27,17 @@
                     <constraints>
                         <constraint firstAttribute="height" constant="14" id="eNF-O9-9JG"/>
                     </constraints>
-                    <buttonCell key="cell" type="check" title="Enable advanced settings" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="7ml-VU-xWv">
+                    <buttonCell key="cell" type="check" title="Enable advanced settings" bezelStyle="regularSquare" imagePosition="left" enabled="NO" state="on" inset="2" id="7ml-VU-xWv">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                     <connections>
                         <action selector="updateControlStatus:" target="-2" id="9Ld-Pn-CIQ"/>
-                        <binding destination="nyg-fH-Pug" name="value" keyPath="values.enableAdvancedSettings" id="JrO-M2-KNJ"/>
+                        <binding destination="nyg-fH-Pug" name="value" keyPath="values.enableAdvancedSettings" id="ve7-Ff-Gmp">
+                            <dictionary key="options">
+                                <bool key="NSConditionallySetsEnabled" value="NO"/>
+                            </dictionary>
+                        </binding>
                     </connections>
                 </button>
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="vY6-lX-1l5">
@@ -207,7 +211,7 @@
                                 <action selector="chooseDirBtnAction:" target="-2" id="wqF-DD-4eM"/>
                             </connections>
                         </button>
-                        <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jsf-pn-h6s" customClass="ShortcutAvailableTextField" customModule="IINA" customModuleProvider="target">
+                        <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jsf-pn-h6s" customClass="ShortcutAvailableTextField" customModule="RRPlayer" customModuleProvider="target">
                             <rect key="frame" x="38" y="18" width="442" height="22"/>
                             <constraints>
                                 <constraint firstAttribute="height" constant="22" id="XEU-L9-uIM"/>
@@ -261,35 +265,19 @@
                     <constraints>
                         <constraint firstAttribute="height" constant="14" id="i4O-W0-fJb"/>
                     </constraints>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="The following settings will require restarting IINA to take effect." id="HMa-Vz-EUk">
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="The following settings will require restarting me to take effect." id="HMa-Vz-EUk">
                         <font key="font" metaFont="smallSystem"/>
                         <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3Gg-Io-SlS">
-                    <rect key="frame" x="457" y="361" width="25" height="25"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="21" id="G44-ow-TgU"/>
-                    </constraints>
-                    <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="jZ3-bn-f9w">
-                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <connections>
-                        <action selector="helpBtnAction:" target="-2" id="G8C-1V-IMW"/>
-                    </connections>
-                </button>
             </subviews>
             <constraints>
-                <constraint firstItem="3Gg-Io-SlS" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="ymk-Ax-TcO" secondAttribute="trailing" constant="8" id="09d-Ug-FlG"/>
                 <constraint firstItem="ymk-Ax-TcO" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="4ww-pP-73H"/>
                 <constraint firstItem="vY6-lX-1l5" firstAttribute="top" secondItem="M2l-at-Cbp" secondAttribute="bottom" constant="8" id="6ox-vX-4oV"/>
                 <constraint firstAttribute="trailing" secondItem="vY6-lX-1l5" secondAttribute="trailing" id="7qQ-wU-xaT"/>
                 <constraint firstItem="vY6-lX-1l5" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" id="EHl-sb-INB"/>
                 <constraint firstAttribute="trailing" secondItem="M2l-at-Cbp" secondAttribute="trailing" constant="20" id="GxZ-am-YkL"/>
-                <constraint firstAttribute="trailing" secondItem="3Gg-Io-SlS" secondAttribute="trailing" constant="20" id="J3v-xU-YKb"/>
-                <constraint firstItem="3Gg-Io-SlS" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="17" id="TMm-n7-5RT"/>
                 <constraint firstItem="ymk-Ax-TcO" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="20" id="XbH-Ze-25n"/>
                 <constraint firstItem="M2l-at-Cbp" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="bBq-Yq-NkF"/>
                 <constraint firstItem="M2l-at-Cbp" firstAttribute="top" secondItem="ymk-Ax-TcO" secondAttribute="bottom" constant="8" id="yhE-Fe-bBa"/>

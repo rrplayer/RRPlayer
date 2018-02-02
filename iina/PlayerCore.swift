@@ -211,6 +211,7 @@ class PlayerCore: NSObject {
     var keyBindings: [String: KeyMapping] = [:]
     keyMappings.forEach { keyBindings[$0.key] = $0 }
     PlayerCore.keyBindings = keyBindings
+    //可能崩溃
     (NSApp.delegate as? AppDelegate)?.menuController.updateKeyEquivalentsFrom(keyMappings)
   }
 
@@ -339,6 +340,14 @@ class PlayerCore: NSObject {
   /** Pause / resume. Reset speed to 0 when pause. */
   func togglePause(_ set: Bool?) {
     if let setPause = set {
+      //MARK: 广告注入:[暂停支持]
+      DispatchQueue.main.async {
+        if setPause{ //暂停
+          self.mainWindow.showPauseAD()
+        }else{
+          self.mainWindow.hidePauseAD()
+        }
+      }
       // if paused by EOF, replay the video.
       if !setPause {
         if mpv.getFlag(MPVProperty.eofReached) {
@@ -347,13 +356,22 @@ class PlayerCore: NSObject {
       }
       mpv.setFlag(MPVOption.PlaybackControl.pause, setPause)
     } else {
+      //MARK: 广告注入:[暂停支持]右键
+      let needPaused = !info.isPaused //反
+      DispatchQueue.main.async {
+        if needPaused{ //暂停
+          self.mainWindow.showPauseAD()
+        }else{
+          self.mainWindow.hidePauseAD()
+        }
+      }
       if (info.isPaused) {
         if mpv.getFlag(MPVProperty.eofReached) {
           seek(absoluteSecond: 0)
         }
-        mpv.setFlag(MPVOption.PlaybackControl.pause, false)
+        mpv.setFlag(MPVOption.PlaybackControl.pause, needPaused)
       } else {
-        mpv.setFlag(MPVOption.PlaybackControl.pause, true)
+        mpv.setFlag(MPVOption.PlaybackControl.pause, needPaused)
       }
     }
   }
@@ -453,13 +471,16 @@ class PlayerCore: NSObject {
 
   func toggleShuffle() {
     mpv.command(.playlistShuffle)
-    postNotification(.iinaPlaylistChanged)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
   }
 
+  //: 音量,最终被发生调整了
   func setVolume(_ volume: Double, constrain: Bool = true) {
+    
     let maxVolume = Preference.integer(for: .maxVolume)
     let constrainedVolume = volume.constrain(min: 0, max: Double(maxVolume))
     let appliedVolume = constrain ? constrainedVolume : volume
+    
     info.volume = appliedVolume
     mpv.setDouble(MPVOption.Audio.volume, appliedVolume)
     Preference.set(constrainedVolume, for: .softVolume)
@@ -573,7 +594,7 @@ class PlayerCore: NSObject {
     }
   }
 
-  func loadExternalSubFile(_ url: URL, delay: Bool = false) {
+  func loadExternalSubFile(_ url: URL) {
     if let track = info.subTracks.first(where: { $0.externalFilename == url.path }) {
       mpv.command(.subReload, args: [String(track.id)], checkError: false)
       return
@@ -581,15 +602,8 @@ class PlayerCore: NSObject {
 
     mpv.command(.subAdd, args: [url.path], checkError: false) { code in
       if code < 0 {
-        // if another modal panel is shown, popping up an alert now will cause some infinite loop.
-        if delay {
-          DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.5) {
-            Utility.showAlert("unsupported_sub")
-          }
-        } else {
-          DispatchQueue.main.async {
-            Utility.showAlert("unsupported_sub")
-          }
+        DispatchQueue.main.async {
+          Utility.showAlert("unsupported_sub")
         }
       }
     }
@@ -702,13 +716,13 @@ class PlayerCore: NSObject {
 
   func setAudioEq(fromFilter filter: MPVFilter) {
     filter.label = Constants.FilterName.audioEq
-    _ = addAudioFilter(filter)
+    addAudioFilter(filter)
     info.audioEqFilter = filter
   }
 
   func removeAudioEqFilter() {
     if let prevFilter = info.audioEqFilter {
-      _ = removeAudioFilter(prevFilter)
+      removeAudioFilter(prevFilter)
       info.audioEqFilter = nil
     }
   }
@@ -764,16 +778,12 @@ class PlayerCore: NSObject {
     return result
   }
 
-  func addAudioFilter(_ filter: MPVFilter) -> Bool {
-    var result = true
-    mpv.command(.af, args: ["add", filter.stringFormat], checkError: false) { result = $0 >= 0 }
-    return result
+  func addAudioFilter(_ filter: MPVFilter) {
+    mpv.command(.af, args: ["add", filter.stringFormat], checkError: false)
   }
 
-  func removeAudioFilter(_ filter: MPVFilter) -> Bool {
-    var result = true
-    mpv.command(.af, args: ["del", filter.stringFormat], checkError: false)  { result = $0 >= 0 }
-    return result
+  func removeAudioFilter(_ filter: MPVFilter) {
+    mpv.command(.af, args: ["del", filter.stringFormat], checkError: false)
   }
 
   func getAudioDevices() -> [[String: String]] {
@@ -889,30 +899,30 @@ class PlayerCore: NSObject {
     triedUsingExactSeekForCurrentFile = false
     info.fileLoading = false
     info.haveDownloadedSub = false
-    // generate thumbnails if window has loaded video
+    // Generate thumbnails if window has loaded video
     if mainWindow.isVideoLoaded {
       generateThumbnails()
     }
-    // main thread stuff
-    getTrackInfo()
-    getSelectedTracks()
-    getPlaylist()
-    getChapters()
+    // Main thread stuff
     DispatchQueue.main.sync {
+      self.getTrackInfo()
+      self.getSelectedTracks()
+      self.getPlaylist()
+      self.getChapters()
       syncPlayTimeTimer = Timer.scheduledTimer(timeInterval: TimeInterval(AppData.getTimeInterval),
                                                target: self, selector: #selector(self.syncUITime), userInfo: nil, repeats: true)
+      mainWindow.updateTitle()
       if #available(macOS 10.12.2, *) {
         touchBarSupport.setupTouchBarUI()
       }
-    }
-    // set initial properties for the first file
-    if info.justLaunched {
-      if Preference.bool(for: .fullScreenWhenOpen) && !mainWindow.isInFullScreen && !isInMiniPlayer {
-        DispatchQueue.main.async {
-          self.mainWindow.toggleWindowFullScreen()
+      // only set some initial properties for the first file
+      if info.justLaunched {
+        if Preference.bool(for: .fullScreenWhenOpen) && !mainWindow.isInFullScreen && !isInMiniPlayer {
+          mainWindow.toggleWindowFullScreen()
         }
+        info.justLaunched = false
       }
-      info.justLaunched = false
+      mainWindow.quickSettingView.reload()
     }
     // add to history
     if let url = info.currentURL {
@@ -922,7 +932,7 @@ class PlayerCore: NSObject {
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
       }
     }
-    postNotification(.iinaFileLoaded)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.fileLoaded))
   }
 
   func playbackRestarted() {
@@ -1239,12 +1249,6 @@ class PlayerCore: NSObject {
     }
   }
 
-  // MARK: - Notifications
-
-  func postNotification(_ name: Notification.Name) {
-    NotificationCenter.default.post(Notification(name: name, object: self))
-  }
-
   // MARK: - Utils
 
   /**
@@ -1322,7 +1326,7 @@ class PlayerCore: NSObject {
       case Constants.FilterName.mirror:
         info.mirrorFilter = filter
       case Constants.FilterName.delogo:
-        info.delogoFilter = filter
+        info.delogoFiter = filter
       default:
         break
       }

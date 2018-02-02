@@ -12,8 +12,10 @@ class MainWindow: NSWindow {
 
   override func cancelOperation(_ sender: Any?) {
     let controller = windowController as! MainWindowController
-    if let kb = PlayerCore.keyBindings["ESC"] {
-      controller.handleKeyBinding(kb)
+    if controller.currentFullScreenIsLegacy && controller.isInFullScreen {
+      controller.toggleWindowFullScreen()
+    } else {
+      super.cancelOperation(sender)
     }
   }
 

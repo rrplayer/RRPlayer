@@ -77,8 +77,7 @@ class MPVController: NSObject {
     MPVOption.Equalizer.saturation: MPV_FORMAT_INT64,
     MPVOption.Window.fullscreen: MPV_FORMAT_FLAG,
     MPVOption.Window.ontop: MPV_FORMAT_FLAG,
-    MPVOption.Window.windowScale: MPV_FORMAT_DOUBLE,
-    MPVProperty.mediaTitle: MPV_FORMAT_STRING
+    MPVOption.Window.windowScale: MPV_FORMAT_DOUBLE
   ]
 
   init(playerCore: PlayerCore) {
@@ -395,21 +394,6 @@ class MPVController: NSObject {
     mpv_set_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
   }
 
-  func setFlagAsync(_ name: String, _ flag: Bool) {
-    var data: Int = flag ? 1 : 0
-    mpv_set_property_async(mpv, 0, name, MPV_FORMAT_FLAG, &data)
-  }
-
-  func setIntAsync(_ name: String, _ value: Int) {
-    var data = Int64(value)
-    mpv_set_property_async(mpv, 0, name, MPV_FORMAT_INT64, &data)
-  }
-
-  func setDoubleAsync(_ name: String, _ value: Double) {
-    var data = value
-    mpv_set_property_async(mpv, 0, name, MPV_FORMAT_DOUBLE, &data)
-  }
-
   func setString(_ name: String, _ value: String) {
     mpv_set_property_string(mpv, name, value)
   }
@@ -467,7 +451,7 @@ class MPVController: NSObject {
       if returnValue < 0 {
         Utility.showAlert("filter.incorrect")
         // reload data in filter setting window
-        self.player.postNotification(.iinaVFChanged)
+        NotificationCenter.default.post(Notification(name: Constants.Noti.vfChanged))
       }
     }
   }
@@ -536,7 +520,10 @@ class MPVController: NSObject {
       player.info.isIdle = false
       guard getString(MPVProperty.path) != nil else { break }
       player.fileStarted()
-      player.sendOSD(.fileStart(player.info.currentURL?.lastPathComponent ?? "-"))
+      //MARK: 广告补丁, 不提示开始玩意
+      if !RRModFlag.enableStartAD{
+        player.sendOSD(.fileStart(player.info.currentURL?.lastPathComponent ?? "-"))
+      }
 
     case MPV_EVENT_FILE_LOADED:
       onFileLoaded()
@@ -615,10 +602,19 @@ class MPVController: NSObject {
     player.info.videoPosition = VideoTime(pos)
     player.fileLoaded()
     fileLoaded = true
-    // mpvResume()
-    if !Preference.bool(for: .pauseWhenOpen) {
-      setFlag(MPVOption.PlaybackControl.pause, false)
+    
+    //MARK: 广告注入-启动广告时机
+    if RRModFlag.enableStartAD{
+      DispatchQueue.main.async {
+        self.player.mainWindow.showStartAD() //显示启动广告
+      }
+    }else{ //正常情况下
+      // mpvResume()
+      if !Preference.bool(for: .pauseWhenOpen) {
+        setFlag(MPVOption.PlaybackControl.pause, false)
+      }
     }
+    
     player.syncUI(.playlist)
   }
 
@@ -645,11 +641,6 @@ class MPVController: NSObject {
   // MARK: - Property listeners
 
   private func handlePropertyChange(_ name: String, _ property: mpv_event_property) {
-
-    DispatchQueue.main.async {
-      self.player.mainWindow.quickSettingView.reload()
-    }
-
     switch name {
 
     case MPVProperty.videoParams:
@@ -676,7 +667,14 @@ class MPVController: NSObject {
     case MPVOption.PlaybackControl.pause:
       if let data = UnsafePointer<Bool>(OpaquePointer(property.data))?.pointee {
         if player.info.isPaused != data {
-          player.sendOSD(data ? .pause : .resume)
+          //MARK: 广告绑定,播放器消息不显示起初的恢复,以及暂停广告
+          if let pos = player.info.videoPosition?.second, pos == 0, !data{ //最初,恢复,0
+            dlog("[片头广告]广告结束,开始播放.")
+            player.sendOSD(.fileStart(player.info.currentURL?.lastPathComponent ?? "-"))
+            //player.sendOSD(.playAfterAD)
+          }else{ //正常的时候
+            player.sendOSD(data ? .pause : .resume)
+          }
           player.info.isPaused = data
         }
         if player.mainWindow.isWindowLoaded {
@@ -784,48 +782,26 @@ class MPVController: NSObject {
     // following properties may change before file loaded
 
     case MPVProperty.playlistCount:
-      player.postNotification(.iinaPlaylistChanged)
+      NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
 
     case MPVProperty.trackListCount:
       player.trackListChanged()
-      player.postNotification(.iinaTracklistChanged)
+      NotificationCenter.default.post(Notification(name: Constants.Noti.tracklistChanged))
 
     case MPVProperty.vf:
-      player.postNotification(.iinaVFChanged)
+      NotificationCenter.default.post(Notification(name: Constants.Noti.vfChanged))
 
     case MPVProperty.af:
-      player.postNotification(.iinaAFChanged)
+      NotificationCenter.default.post(Notification(name: Constants.Noti.afChanged))
 
     case MPVOption.Window.fullscreen:
-      guard player.mainWindow.isWindowLoaded else { break }
-      let fs = getFlag(MPVOption.Window.fullscreen)
-      if fs != player.mainWindow.isInFullScreen {
-        DispatchQueue.main.async {
-          self.player.mainWindow.toggleWindowFullScreen()
-        }
-      }
+      NotificationCenter.default.post(Notification(name: Constants.Noti.fsChanged))
 
     case MPVOption.Window.ontop:
-      guard player.mainWindow.isWindowLoaded else { break }
-      let ontop = getFlag(MPVOption.Window.ontop)
-      if ontop != player.mainWindow.isOntop {
-        DispatchQueue.main.async {
-          self.player.mainWindow.isOntop = ontop
-          self.player.mainWindow.setWindowFloatingOnTop(ontop)
-        }
-      }
+      NotificationCenter.default.post(Notification(name: Constants.Noti.ontopChanged))
 
     case MPVOption.Window.windowScale:
-      guard player.mainWindow.isWindowLoaded else { break }
-      let windowScale = getDouble(MPVOption.Window.windowScale)
-      if fabs(windowScale - player.info.cachedWindowScale) > 10e-10 {
-        DispatchQueue.main.async {
-          self.player.mainWindow.setWindowScale(windowScale)
-        }
-      }
-
-    case MPVProperty.mediaTitle:
-      player.postNotification(.iinaMediaTitleChanged)
+      NotificationCenter.default.post(Notification(name: Constants.Noti.windowScaleChanged))
 
     default:
       // Utility.log("MPV property changed (unhandled): \(name)")

@@ -8,6 +8,7 @@
 
 import Cocoa
 import Mustache
+import AVKit
 
 fileprivate typealias PK = Preference.Key
 
@@ -31,10 +32,31 @@ fileprivate let CropAnimationDuration = 0.2
 
 class MainWindowController: NSWindowController, NSWindowDelegate {
 
-  override var windowNibName: NSNib.Name {
+    override var windowNibName: NSNib.Name {
     return NSNib.Name("MainWindowController")
   }
-
+  
+  /* 广告支持 */
+  let adMan = ADMan.shared
+  ///跳过广告
+  @IBOutlet weak var adJumpBtn: NSButton!
+    /// 隐藏广告
+    @IBOutlet weak var adHideBtn: NSButton!
+    ///广告播放器
+  @IBOutlet weak var adPlayer: AVPlayerView!
+  /// 广告图片
+  @IBOutlet weak var adImage: NSImageView!
+  /// 按钮: 还有秒数
+  @IBOutlet weak var btnWaitSecState: NSButton!
+  /// 广告剩余时间, 无效时是没有开始广告
+  var startAdPlayLeftSec: Int?
+  /// 最后点击连接
+  var adLinkUrl: URL?
+  /// 广告计时器
+  var adTimer: Timer?
+  /// 开启控制
+  @objc dynamic var enableControl: Bool = true
+  
   // MARK: - Constants
 
   /** Minimum window size. */
@@ -340,6 +362,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     case PK.showRemainingTime.rawValue:
       if let newValue = change[.newKey] as? Bool {
         rightLabel.mode = newValue ? .remaining : .duration
+        if #available(OSX 10.12.2, *) {
+          player.touchBarSupport.touchBarCurrentPosLabel?.mode = newValue ? .remaining : .current
+        }
       }
 
     case PK.blackOutMonitor.rawValue:
@@ -504,7 +529,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
   override func windowDidLoad() {
 
     super.windowDidLoad()
-
+    
     guard let w = self.window else { return }
 
     w.initialFirstResponder = nil
@@ -608,16 +633,23 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     }
 
     // add notification observers
-
-    notificationCenter(.default, addObserverfor: .iinaFileLoaded, object: player) { [unowned self] _ in
-      self.updateTitle()
-      self.quickSettingView.reload()
+    notificationCenter(.default, addObserverfor: Constants.Noti.fsChanged) { [unowned self] _ in
+      let fs = self.player.mpv.getFlag(MPVOption.Window.fullscreen)
+      if fs != self.isInFullScreen {
+        self.toggleWindowFullScreen()
+      }
     }
-
-    notificationCenter(.default, addObserverfor: .iinaMediaTitleChanged, object: player) { [unowned self] _ in
-      self.updateTitle()
+    notificationCenter(.default, addObserverfor: Constants.Noti.ontopChanged) { [unowned self] _ in
+      let ontop = self.player.mpv.getFlag(MPVOption.Window.ontop)
+      if ontop != self.isOntop {
+        self.isOntop = ontop
+        self.setWindowFloatingOnTop(ontop)
+      }
     }
-
+    notificationCenter(.default, addObserverfor: Constants.Noti.windowScaleChanged) { [unowned self] _ in
+      let windowScale = self.player.mpv.getDouble(MPVOption.Window.windowScale)
+      self.setWindowScale(windowScale)
+    }
     notificationCenter(.default, addObserverfor: NSApplication.didChangeScreenParametersNotification) { [unowned self] _ in
       // This observer handles a situation that the user connected a new screen or removed a screen
       let screenCount = NSScreen.screens.count
@@ -629,10 +661,16 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       }
       self.cachedScreenCount = screenCount
     }
-
+    
+    //MARK: 初始化广告窗口
+    self.setupAdView()
+    dlog("[播放器夹加载]广告窗口正在配置到播放器里...")
   }
 
   deinit {
+    //MARK: 移除广告通知
+    self.uninstallAdView()
+    
     ObjcUtils.silenced {
       for key in self.observedPrefKeys {
         UserDefaults.standard.removeObserver(self, forKeyPath: key.rawValue)
@@ -733,7 +771,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       fragControlView.setVisibilityPriority(.notVisible, for: fragControlViewLeftView)
       fragControlView.setVisibilityPriority(.notVisible, for: fragControlViewRightView)
       oscBottomMainView.addView(fragVolumeView, in: .trailing)
-      oscBottomMainView.addView(fragToolbarView, in: .trailing)
+      if !RRModFlag.disableControllerAndPlistButton{ //禁止播放器按钮
+        oscBottomMainView.addView(fragToolbarView, in: .trailing)
+      }
       oscBottomMainView.addView(fragControlView, in: .leading)
       oscBottomMainView.addView(fragSliderView, in: .leading)
       oscBottomMainView.setClippingResistancePriority(.defaultLow, for: .horizontal)
@@ -752,40 +792,36 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     guard !isInInteractiveMode else { return }
     let keyCode = KeyCodeHelper.mpvKeyCode(from: event)
     if let kb = PlayerCore.keyBindings[keyCode] {
-      handleKeyBinding(kb)
-    } else {
-      super.keyDown(with: event)
-    }
-  }
-
-  func handleKeyBinding(_ keyBinding: KeyMapping) {
-    if keyBinding.isIINACommand {
-      // - IINA command
-      if let iinaCommand = IINACommand(rawValue: keyBinding.rawAction) {
-        handleIINACommand(iinaCommand)
-      } else {
-        Utility.log("Unknown iina command \(keyBinding.rawAction)")
-      }
-    } else {
-      // - MPV command
-      let returnValue: Int32
-      // execute the command
-      switch keyBinding.action[0] {
-      case MPVCommand.abLoop.rawValue:
-        player.abLoop()
-        returnValue = 0
-      default:
-        returnValue = player.mpv.command(rawString: keyBinding.rawAction)
-      }
-      // handle return value, display osd if needed
-      if returnValue == 0 {
-        // screenshot
-        if keyBinding.action[0] == MPVCommand.screenshot.rawValue {
-          displayOSD(.screenshot)
+      if kb.isIINACommand {
+        // - IINA command
+        if let iinaCommand = IINACommand(rawValue: kb.rawAction) {
+          handleIINACommand(iinaCommand)
+        } else {
+          Utility.log("Unknown iina command \(kb.rawAction)")
         }
       } else {
-        Utility.log("Return value \(returnValue) when executing key command \(keyBinding.rawAction)")
+        // - MPV command
+        let returnValue: Int32
+        // execute the command
+        switch kb.action[0] {
+        case MPVCommand.abLoop.rawValue:
+          player.abLoop()
+          returnValue = 0
+        default:
+          returnValue = player.mpv.command(rawString: kb.rawAction)
+        }
+        // handle return value, display osd if needed
+        if returnValue == 0 {
+          // screenshot
+          if kb.action[0] == MPVCommand.screenshot.rawValue {
+            displayOSD(.screenshot)
+          }
+        } else {
+          Utility.log("Return value \(returnValue) when executing key command \(kb.rawAction)")
+        }
       }
+    } else {
+      super.keyDown(with: event)
     }
   }
 
@@ -1056,10 +1092,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       let seekAmount = (isMouse ? AppData.seekAmountMapMouse : AppData.seekAmountMap)[relativeSeekAmount] * delta
       player.seek(relativeSecond: seekAmount, option: useExtractSeek)
     } else if scrollAction == .volume {
+      // 广告联动: 主播放器改变了音量,广告播放器应该合理的跟随..
       // don't use precised delta for mouse
       let newVolume = player.info.volume + (isMouse ? delta : AppData.volumeMap[volumeScrollAmount] * delta)
       player.setVolume(newVolume)
       volumeSlider.doubleValue = newVolume
+      //广告补丁: 声音同步
+      self.syncVolumeForADPlayer()
     }
   }
 
@@ -1086,8 +1125,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
         }
 
         lastMagnification = recognizer.magnification
-      } else if recognizer.state == .ended {
-        updateWindowParametersForMPV()
       }
 
     } else if pinchAction == .fullscreen{
@@ -1263,12 +1300,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     if Preference.bool(for: .playWhenEnteringFullScreen) && player.info.isPaused {
       player.togglePause(false)
     }
-
-    if #available(macOS 10.12.2, *) {
-      player.touchBarSupport.toggleTouchBarEsc(enteringFullScr: true)
-    }
-    
-    updateWindowParametersForMPV()
   }
 
   func windowWillExitFullScreen(_ notification: Notification) {
@@ -1324,10 +1355,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       player.togglePause(true)
     }
 
-    if #available(macOS 10.12.2, *) {
-      player.touchBarSupport.toggleTouchBarEsc(enteringFullScr: false)
-    }
-
     // restore ontop status
     if !player.info.isPaused {
       setWindowFloatingOnTop(isOntop)
@@ -1340,7 +1367,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     windowFrameBeforeEnteringFullScreen = nil
 
     resetCollectionBehavior()
-    updateWindowParametersForMPV()
   }
 
   // MARK: - Window delegate: Size
@@ -1402,7 +1428,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
   // resize framebuffer in videoView after resizing.
   func windowDidEndLiveResize(_ notification: Notification) {
     videoView.videoSize = window!.convertToBacking(videoView.bounds).size
-    updateWindowParametersForMPV()
   }
 
   func windowDidChangeBackingProperties(_ notification: Notification) {
@@ -1419,7 +1444,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     window!.makeFirstResponder(window!)
     if Preference.bool(for: .pauseWhenInactive) && isPausedDueToInactive {
       player.togglePause(false)
-      isPausedDueToInactive = false
     }
   }
 
@@ -1441,14 +1465,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     if isInFullScreen && Preference.bool(for: .blackOutMonitor) {
       blackOutOtherMonitors()
     }
-    NotificationCenter.default.post(name: .iinaMainWindowChanged, object: nil)
+    NotificationCenter.default.post(name: Constants.Noti.mainWindowChanged, object: nil)
   }
 
   func windowDidResignMain(_ notification: Notification) {
     if Preference.bool(for: .blackOutMonitor) {
       removeBlackWindow()
     }
-    NotificationCenter.default.post(name: .iinaMainWindowChanged, object: nil)
+    NotificationCenter.default.post(name: Constants.Noti.mainWindowChanged, object: nil)
   }
 
   func windowWillMiniaturize(_ notification: Notification) {
@@ -1459,9 +1483,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
   }
 
   func windowDidDeminiaturize(_ notification: Notification) {
-    if Preference.bool(for: .pauseWhenMinimized) && isPausedDueToMiniaturization {
+    if Preference.bool(for: .pauseWhenMinimized), isPausedDueToMiniaturization {
       player.togglePause(false)
-      isPausedDueToMiniaturization = false
     }
   }
 
@@ -2108,7 +2131,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       // animated `setFrame` can be inaccurate!
       w.setFrame(rect, display: true, animate: true)
       w.setFrame(rect, display: true)
-      updateWindowParametersForMPV(withFrame: rect)
     }
 
     // generate thumbnails after video loaded if it's the first time
@@ -2120,15 +2142,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     // UI and slider
     updatePlayTime(withDuration: true, andProgressBar: true)
     updateVolume()
-  }
-
-  func updateWindowParametersForMPV(withFrame frame: NSRect? = nil) {
-    guard let window = window else { return }
-    if let videoWidth = player.info.videoWidth {
-      let windowScale = Double((frame ?? window.frame).width) / Double(videoWidth)
-      player.info.cachedWindowScale = windowScale
-      player.mpv.setDouble(MPVProperty.windowScale, windowScale)
-    }
   }
 
   func setWindowScale(_ scale: Double) {
@@ -2190,7 +2203,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       if currentFullScreenIsLegacy {
         // exit legacy full screen
         // call delegate
-        windowWillExitFullScreen(Notification(name: .iinaLegacyFullScreen))
+        windowWillExitFullScreen(Notification(name: Constants.Noti.legacyFullScreen))
         // stylemask
         window.styleMask.remove(.borderless)
         window.styleMask.remove(.fullScreen)
@@ -2215,21 +2228,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
         }
         window.aspectRatio = aspectRatio
         // call delegate
-        windowDidExitFullScreen(Notification(name: .iinaLegacyFullScreen))
+        windowDidExitFullScreen(Notification(name: Constants.Noti.legacyFullScreen))
       } else {
         // system full screen
         window.toggleFullScreen(self)
       }
     } else {
       // enter full screen
-      if player.isInMiniPlayer { return }
       if Preference.bool(for: .useLegacyFullScreen) {
         // enter legacy full screen
         // cache current window frame
         currentFullScreenIsLegacy = true
         windowFrameBeforeEnteringFullScreen = window.frame
         // call delegate
-        windowWillEnterFullScreen(Notification(name: .iinaLegacyFullScreen))
+        windowWillEnterFullScreen(Notification(name: Constants.Noti.legacyFullScreen))
         // stylemask
         window.styleMask.insert(.borderless)
         window.styleMask.insert(.fullScreen)
@@ -2242,7 +2254,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
         let screen = window.screen ?? NSScreen.main!
         window.setFrame(NSRect(origin: .zero, size: screen.frame.size), display: true, animate: true)
         // call delegate
-        windowDidEnterFullScreen(Notification(name: .iinaLegacyFullScreen))
+        windowDidEnterFullScreen(Notification(name: Constants.Noti.legacyFullScreen))
       } else {
         // system full screen
         currentFullScreenIsLegacy = false
@@ -2276,12 +2288,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     }
     let percentage = (pos.second / duration.second) * 100
     leftLabel.stringValue = pos.stringRepresentation
+    if #available(OSX 10.12.2, *) {
+      player.touchBarSupport.touchBarCurrentPosLabel?.updateText(with: duration, given: pos)
+    }
     rightLabel.updateText(with: duration, given: pos)
     if andProgressBar {
       playSlider.doubleValue = percentage
       if #available(OSX 10.12.2, *) {
         player.touchBarSupport.touchBarPlaySlider?.setDoubleValueSafely(percentage)
-        player.touchBarSupport.touchBarPosLabels.forEach { $0.updateText(with: duration, given: pos) }
       }
     }
   }
@@ -2289,6 +2303,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
   func updateVolume() {
     volumeSlider.doubleValue = player.info.volume
     muteButton.state = player.info.isMuted ? .on : .off
+    //同步音量
+    self.syncVolumeForADPlayer()
   }
 
   func updatePlayButtonState(_ state: NSControl.StateValue) {
@@ -2330,6 +2346,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
 
   /** Play button: pause & resume */
   @IBAction func playButtonAction(_ sender: NSButton) {
+    //MARK: [广告]暂停捕获
+    if RRModFlag.disableActionInAdPlaying{
+      guard !isStartADPlaying else { //不要切换
+        dlog("广告时不允许播放暂停切换")
+        sender.state = (sender.state == .on) ? .off : .on
+        return
+      }
+    }
+    
     if sender.state == .on {
       player.togglePause(false)
     }
@@ -2355,6 +2380,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     } else {
       displayOSD(.unMute)
     }
+    //同步音量
+    self.syncVolumeForADPlayer()
   }
 
   /** left btn */
@@ -2520,6 +2547,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
       NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .default)
     }
     player.setVolume(value)
+    //广告补丁: 声音同步
+    self.syncVolumeForADPlayer()
   }
 
   // MARK: - Utility
@@ -2591,6 +2620,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate {
     })
   }
   
+}
+
+// MARK: - AD音量的同步
+extension MainWindowController{
+  /// 同步广告音量
+  func syncVolumeForADPlayer(){
+    //同步音量
+    self.adPlayer.player?.volume = Float(self.volumeSlider.doubleValue / 100.0)
+    //同步静音
+    self.adPlayer.player?.isMuted = player.info.isMuted
+  }
 }
 
 // MARK: - Picture in Picture

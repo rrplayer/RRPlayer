@@ -139,9 +139,9 @@ extension MainWindowController {
 
   @objc func menuSetDelogo(_ sender: NSMenuItem) {
     if sender.state == .on {
-      if let filter = player.info.delogoFilter {
+      if let filter = player.info.delogoFiter {
         let _ = player.removeVideoFilter(filter)
-        player.info.delogoFilter = nil
+        player.info.delogoFiter = nil
       }
     } else {
       self.hideSideBar {
@@ -170,9 +170,9 @@ extension MainWindowController {
       if player.mpv.getFilters(type).contains(where: { $0.stringFormat == string }) {
         // remove
         if isVideo {
-          _ = player.removeVideoFilter(filter)
+          let _ = player.removeVideoFilter(filter)
         } else {
-          _ = player.removeAudioFilter(filter)
+          player.removeAudioFilter(filter)
         }
       } else {
         // add
@@ -181,9 +181,7 @@ extension MainWindowController {
             Utility.showAlert("filter.incorrect")
           }
         } else {
-          if !player.addAudioFilter(filter) {
-            Utility.showAlert("filter.incorrect")
-          }
+          player.addAudioFilter(filter)
         }
       }
     }

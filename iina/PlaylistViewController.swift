@@ -86,7 +86,7 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
     }
 
     // nofitications
-    playlistChangeObserver = NotificationCenter.default.addObserver(forName: .iinaPlaylistChanged, object: player, queue: OperationQueue.main) { _ in
+    playlistChangeObserver = NotificationCenter.default.addObserver(forName: Constants.Noti.playlistChanged, object: nil, queue: OperationQueue.main) { _ in
       self.reloadData(playlist: true, chapters: false)
     }
     
@@ -252,7 +252,7 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
     } else {
       return false
     }
-    player.postNotification(.iinaPlaylistChanged)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
     return true
   }
 
@@ -442,7 +442,7 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
       mc += 1
     }
     playlistTableView.deselectAll(nil)
-    player.postNotification(.iinaPlaylistChanged)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
   }
 
   @IBAction func contextMenuPlayInNewWindow(_ sender: NSMenuItem) {
@@ -459,7 +459,7 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
       count += 1
     }
     playlistTableView.deselectAll(nil)
-    player.postNotification(.iinaPlaylistChanged)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
   }
 
   @IBAction func contextMenuDeleteFile(_ sender: NSMenuItem) {
@@ -477,7 +477,7 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
       }
     }
     playlistTableView.deselectAll(nil)
-    player.postNotification(.iinaPlaylistChanged)
+    NotificationCenter.default.post(Notification(name: Constants.Noti.playlistChanged))
   }
 
   @IBAction func contextMenuDeleteFileAfterPlayback(_ sender: NSMenuItem) {

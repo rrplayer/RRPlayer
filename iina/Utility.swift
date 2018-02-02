@@ -206,10 +206,10 @@ class Utility {
      - sheetWindow: Must present if mode is `.sheetModal`.
    - Returns: Whether user dismissed the panel by clicking OK. Only works when using `.modal` mode.
    */
-  @discardableResult static func quickPromptPanel(_ key: String,
-                                                  titleComment: String? = nil, messageComment: String? = nil,
-                                                  mode: AlertMode = .modal, sheetWindow: NSWindow? = nil,
-                                                  ok: @escaping (String) -> Void) -> Bool {
+  static func quickPromptPanel(_ key: String,
+                               titleComment: String? = nil, messageComment: String? = nil,
+                               mode: AlertMode = .modal, sheetWindow: NSWindow? = nil,
+                               ok: @escaping (String) -> Void) -> Bool {
     let panel = NSAlert()
     let titleKey = "alert." + key + ".title"
     let messageKey = "alert." + key + ".message"
@@ -245,7 +245,7 @@ class Utility {
       return false
     default:
       Utility.log("quickPromptPanel: Unsupported mode")
-      return false
+      return true
     }
   }
 
@@ -309,13 +309,13 @@ class Utility {
 
   // MARK: - App functions
 
-  static func iinaVersion() -> (String, String) {
+  static func iinaVersion() -> (String, String) { //取回自己的版本号,从字典里
     let infoDic = Bundle.main.infoDictionary!
     let version = infoDic["CFBundleShortVersionString"] as! String
     let build = infoDic["CFBundleVersion"] as! String
     return (version, build)
   }
-
+    
   static func setSelfAsDefaultForAllFileTypes() {
     guard
     let docTypes = Bundle.main.infoDictionary?["CFBundleDocumentTypes"] as? [[String: Any]],
@@ -552,7 +552,6 @@ class Utility {
 }
 
 // http://stackoverflow.com/questions/33294620/
-
 
 func rawPointerOf<T : AnyObject>(obj : T) -> UnsafeRawPointer {
   return UnsafeRawPointer(Unmanaged.passUnretained(obj).toOpaque())

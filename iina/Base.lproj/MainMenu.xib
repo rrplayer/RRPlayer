@@ -12,7 +12,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="IINA" customModuleProvider="target">
+        <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="RRPlayer" customModuleProvider="target">
             <connections>
                 <outlet property="dockMenu" destination="fxS-xv-Jb2" id="YdT-kw-qmk"/>
                 <outlet property="menuController" destination="cyK-tE-xgA" id="6U6-oJ-g0G"/>
@@ -21,23 +21,23 @@
         <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
-                <menuItem title="IINA" id="1Xt-HY-uBw">
+                <menuItem title="Player" id="1Xt-HY-uBw">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="IINA" systemMenu="apple" id="uQy-DD-JDr">
+                    <menu key="submenu" title="Player" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
-                            <menuItem title="About IINA" id="5kV-Vb-QxS">
+                            <menuItem title="About" id="5kV-Vb-QxS">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="showAboutWindow:" target="Voe-Tx-rLC" id="HGv-E1-lQH"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Check for Updates..." id="gMo-qL-m08">
+                            <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
+                            <menuItem title="Set RRPlayer as the Default App…" id="TaI-h1-U1t">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="checkForUpdates:" target="wTK-gz-aTs" id="MFD-wN-SXh"/>
+                                    <action selector="setSelfAsDefaultAction:" target="Voe-Tx-rLC" id="I5H-Up-fND"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="VOq-y0-SEH"/>
                             <menuItem title="Preferences…" keyEquivalent="," id="BOF-NM-1cW">
                                 <connections>
                                     <action selector="showPreferences:" target="Voe-Tx-rLC" id="1Mr-ag-16v"/>
@@ -49,7 +49,7 @@
                                 <menu key="submenu" title="Services" systemMenu="services" id="hz9-B4-Xy5"/>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="4je-JR-u6R"/>
-                            <menuItem title="Hide IINA" keyEquivalent="h" id="Olw-nP-bQN">
+                            <menuItem title="Hide" keyEquivalent="h" id="Olw-nP-bQN">
                                 <connections>
                                     <action selector="hide:" target="-1" id="PnN-Uc-m68"/>
                                 </connections>
@@ -67,7 +67,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="kCx-OE-vgT"/>
-                            <menuItem title="Quit IINA" keyEquivalent="q" id="4sb-4s-VLi">
+                            <menuItem title="Quit" keyEquivalent="q" id="4sb-4s-VLi">
                                 <connections>
                                     <action selector="terminate:" target="-1" id="Te7-pn-YzF"/>
                                 </connections>
@@ -517,8 +517,8 @@
                                     <action selector="performMiniaturize:" target="-1" id="VwT-WD-YPe"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Zoom" id="R4o-n2-Eq4">
-                                <modifierMask key="keyEquivalentModifierMask"/>
+                            <menuItem title="Zoom" keyEquivalent="z" id="R4o-n2-Eq4">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES"/>
                                 <connections>
                                     <action selector="performZoom:" target="-1" id="DIl-cC-cCs"/>
                                 </connections>
@@ -543,29 +543,9 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Help" systemMenu="help" id="F2S-fz-NVQ">
                         <items>
-                            <menuItem title="IINA Help" keyEquivalent="?" id="FKE-Sm-Kum">
+                            <menuItem title="Site" keyEquivalent="?" id="FKE-Sm-Kum">
                                 <connections>
-                                    <action selector="helpAction:" target="Voe-Tx-rLC" id="aqh-p6-pB4"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="ZO8-wH-FBe"/>
-                            <menuItem title="Set IINA as the Default App…" id="0os-i1-tJF">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="setSelfAsDefaultAction:" target="Voe-Tx-rLC" id="UiI-MJ-FxH"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="z2G-X1-rx3"/>
-                            <menuItem title="GitHub" id="A9w-iE-gVg">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="githubAction:" target="Voe-Tx-rLC" id="Qaj-Kz-mRQ"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Website" id="Rqg-VS-aIj">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="websiteAction:" target="Voe-Tx-rLC" id="tO9-9Q-OBu"/>
+                                    <action selector="websiteAction:" target="Voe-Tx-rLC" id="8Gg-j7-jFr"/>
                                 </connections>
                             </menuItem>
                         </items>
@@ -573,7 +553,7 @@
                 </menuItem>
             </items>
         </menu>
-        <customObject id="cyK-tE-xgA" customClass="MenuController" customModule="IINA" customModuleProvider="target">
+        <customObject id="cyK-tE-xgA" customClass="MenuController" customModule="RRPlayer" customModuleProvider="target">
             <connections>
                 <outlet property="abLoop" destination="i3P-Xw-8D7" id="cBJ-XW-MJ0"/>
                 <outlet property="advancedScreenshot" destination="CKi-JE-yLT" id="pRb-CI-7g9"/>
@@ -694,6 +674,5 @@
             </items>
             <point key="canvasLocation" x="18.5" y="678.5"/>
         </menu>
-        <customObject id="wTK-gz-aTs" customClass="SUUpdater"/>
     </objects>
 </document>

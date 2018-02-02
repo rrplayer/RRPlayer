@@ -127,7 +127,7 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
     controlView.alphaValue = 0
 
     // notifications
-    NotificationCenter.default.addObserver(self, selector: #selector(updateTrack), name: .iinaMediaTitleChanged, object: player)
+    NotificationCenter.default.addObserver(self, selector: #selector(updateTrack), name: Constants.Noti.fileLoaded, object: nil)
 
     updateVolume()
   }
@@ -238,31 +238,6 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
     rightLabel.updateText(with: duration, given: pos)
     if andProgressBar {
       playSlider.doubleValue = percentage
-      if #available(OSX 10.12.2, *) {
-        player.touchBarSupport.touchBarPlaySlider?.setDoubleValueSafely(percentage)
-        player.touchBarSupport.touchBarPosLabels.forEach { $0.updateText(with: duration, given: pos) }
-      }
-    }
-  }
-
-  @objc
-  func updateTrack() {
-    DispatchQueue.main.async {
-      let (mediaTitle, mediaArtist, mediaAlbum) = self.player.getMusicMetadata()
-      self.titleLabel.stringValue = mediaTitle
-      self.window?.title = mediaTitle
-      // hide artist & album label when info not available
-      if mediaArtist.isEmpty && mediaAlbum.isEmpty {
-        self.titleLabelTopConstraint.constant = 6 + 10
-        self.artistAlbumLabel.stringValue = ""
-      } else {
-        self.titleLabelTopConstraint.constant = 6
-        if mediaArtist.isEmpty || mediaAlbum.isEmpty {
-          self.artistAlbumLabel.stringValue = "\(mediaArtist)\(mediaAlbum)"
-        } else {
-          self.artistAlbumLabel.stringValue = "\(mediaArtist) - \(mediaAlbum)"
-        }
-      }
     }
   }
 
@@ -395,6 +370,27 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
       window.level = .iinaFloating
     } else {
       window.level = .normal
+    }
+  }
+
+  @objc
+  func updateTrack() {
+    DispatchQueue.main.async {
+      let (mediaTitle, mediaArtist, mediaAlbum) = self.player.getMusicMetadata()
+      self.titleLabel.stringValue = mediaTitle
+      self.window?.title = mediaTitle
+      // hide artist & album label when info not available
+      if mediaArtist.isEmpty && mediaAlbum.isEmpty {
+        self.titleLabelTopConstraint.constant = 6 + 10
+        self.artistAlbumLabel.stringValue = ""
+      } else {
+        self.titleLabelTopConstraint.constant = 6
+        if mediaArtist.isEmpty || mediaAlbum.isEmpty {
+          self.artistAlbumLabel.stringValue = "\(mediaArtist)\(mediaAlbum)"
+        } else {
+          self.artistAlbumLabel.stringValue = "\(mediaArtist) - \(mediaAlbum)"
+        }
+      }
     }
   }
   

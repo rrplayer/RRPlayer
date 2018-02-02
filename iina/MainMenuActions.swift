@@ -219,7 +219,7 @@ extension MainMenuActionHandler {
   @objc func menuChangeVolume(_ sender: NSMenuItem) {
     if let volumeDelta = sender.representedObject as? Int {
       let newVolume = Double(volumeDelta) + player.info.volume
-      player.setVolume(newVolume)
+      player.setVolume(newVolume, constrain: false)
     } else {
       Utility.log("sender.representedObject is not int in menuChangeVolume()")
     }
@@ -248,7 +248,7 @@ extension MainMenuActionHandler {
 extension MainMenuActionHandler {
   @objc func menuLoadExternalSub(_ sender: NSMenuItem) {
     Utility.quickOpenPanel(title: "Load external subtitle file", isDir: false) { url in
-      self.player.loadExternalSubFile(url, delay: true)
+      self.player.loadExternalSubFile(url)
     }
   }
 

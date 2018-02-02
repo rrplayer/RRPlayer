@@ -51,8 +51,10 @@ class InitialWindowController: NSWindowController {
     mainView.layer?.backgroundColor = CGColor(gray: 0.1, alpha: 1)
     appIcon.image = NSApp.applicationIconImage
 
-    let (version, build) = Utility.iinaVersion()
-    versionLabel.stringValue = "\(version) Build \(build)"
+    let infoDic = Bundle.main.infoDictionary!
+    let version = infoDic["CFBundleShortVersionString"] as! String
+    let build = infoDic["CFBundleVersion"] as! String
+    versionLabel.stringValue = "V\(version) (\(build))"
 
     recentFilesTableView.delegate = self
     recentFilesTableView.dataSource = self

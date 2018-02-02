@@ -69,9 +69,9 @@ class FilterWindowController: NSWindowController {
     editFilterKeyRecordView.delegate = self
 
     // notifications
-    let notiName: Notification.Name = filterType == MPVProperty.af ? .iinaAFChanged : .iinaVFChanged
+    let notiName = filterType == MPVProperty.af ? Constants.Noti.afChanged : Constants.Noti.vfChanged
     NotificationCenter.default.addObserver(self, selector: #selector(reloadTable), name: notiName, object: nil)
-    NotificationCenter.default.addObserver(self, selector: #selector(reloadTable), name: .iinaMainWindowChanged, object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(reloadTable), name: Constants.Noti.mainWindowChanged, object: nil)
   }
 
   @objc
@@ -103,18 +103,11 @@ class FilterWindowController: NSWindowController {
   }
 
   func addFilter(_ filter: MPVFilter) {
-    if filterType == MPVProperty.vf {
-      guard PlayerCore.active.addVideoFilter(filter) else {
-        Utility.showAlert("filter.incorrect")
-        return
-      }
-    } else {
-      guard PlayerCore.active.addAudioFilter(filter) else {
-        Utility.showAlert("filter.incorrect")
-        return
-      }
-    }
     filters.append(filter)
+    guard PlayerCore.active.addVideoFilter(filter) else {
+      Utility.showAlert("filter.incorrect")
+      return
+    }
     reloadTable()
   }
 
@@ -140,13 +133,7 @@ class FilterWindowController: NSWindowController {
   @IBAction func removeFilterAction(_ sender: Any) {
     let pc = PlayerCore.active
     if currentFiltersTableView.selectedRow >= 0 {
-      let success: Bool
-      if filterType == MPVProperty.vf {
-        success = pc.removeVideoFilter(filters[currentFiltersTableView.selectedRow])
-      } else {
-        success = pc.removeAudioFilter(filters[currentFiltersTableView.selectedRow])
-      }
-      if success {
+      if pc.removeVideoFilter(filters[currentFiltersTableView.selectedRow]) {
         reloadTable()
         pc.sendOSD(.removeFilter)
       }
@@ -264,8 +251,7 @@ extension FilterWindowController {
     if let currentFilter = currentSavedFilter {
       currentFilter.name = editFilterNameTextField.stringValue
       currentFilter.filterString = editFilterStringTextField.stringValue
-      // FIXME: shouldn't be shift-modified; should examine this carefully
-      currentFilter.shortcutKey = editFilterKeyRecordView.currentRawKey.lowercased()
+      currentFilter.shortcutKey = editFilterKeyRecordView.currentRawKey
       currentFilter.shortcutKeyModifiers = editFilterKeyRecordView.currentKeyModifiers
       reloadTable()
       syncSavedFilter()

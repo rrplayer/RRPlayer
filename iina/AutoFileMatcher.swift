@@ -47,7 +47,11 @@ class AutoFileMatcher {
     for file in files {
       let fileInfo = FileInfo(file)
       if let mediaType = Utility.mediaType(forExtension: fileInfo.ext) {
-        filesGroupedByMediaType[mediaType]!.append(fileInfo)
+        if RRModFlag.disableAutoLoadAudioToPlayList, mediaType == .audio{
+          //NOTE: 过滤音频
+        }else{
+          filesGroupedByMediaType[mediaType]!.append(fileInfo)
+        }
       }
     }
 
@@ -299,7 +303,7 @@ class AutoFileMatcher {
       // add files to playlist
       if shouldAutoLoad {
         try addFilesToPlaylist()
-        player.postNotification(.iinaPlaylistChanged)
+        NotificationCenter.default.post(name: Constants.Noti.playlistChanged, object: nil)
       }
 
       // group video and sub files
@@ -311,12 +315,12 @@ class AutoFileMatcher {
 
       // match sub stage 1
       try matchSubs(withMatchedSeries: matchedPrefixes)
-      player.postNotification(.iinaPlaylistChanged)
+      NotificationCenter.default.post(name: Constants.Noti.playlistChanged, object: nil)
 
       // match sub stage 2
       if shouldAutoLoad {
         try forceMatchUnmatchedVideos()
-        player.postNotification(.iinaPlaylistChanged)
+        NotificationCenter.default.post(name: Constants.Noti.playlistChanged, object: nil)
       }
 
     } catch {

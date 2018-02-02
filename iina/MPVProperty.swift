@@ -146,7 +146,7 @@ struct MPVProperty {
   /** cache-buffering-state */
   static let cacheBufferingState = "cache-buffering-state"
   /** eof-reached */
-  static let eofReached = "eof-reached"
+  static let eofReached = "eof-reached" //到了结尾,哈哈
   /** seeking */
   static let seeking = "seeking"
   /** mixer-active */

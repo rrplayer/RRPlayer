@@ -126,12 +126,12 @@ class QuickSettingViewController: NSViewController, NSTableViewDataSource, NSTab
     subLoadSementedControl.image(forSegment: 1)?.isTemplate = true
 
     // notifications
-    let tracklistChangeObserver = NotificationCenter.default.addObserver(forName: .iinaTracklistChanged, object: player, queue: OperationQueue.main) { _ in
+    let tracklistChangeObserver = NotificationCenter.default.addObserver(forName: Constants.Noti.tracklistChanged, object: nil, queue: OperationQueue.main) { _ in
       self.player.getTrackInfo()
       self.withAllTableViews { tableView, _ in tableView.reloadData() }
     }
     observers.append(tracklistChangeObserver)
-    let afChangeObserver = NotificationCenter.default.addObserver(forName: .iinaAFChanged, object: player, queue: OperationQueue.main) { _ in
+    let afChangeObserver = NotificationCenter.default.addObserver(forName: Constants.Noti.afChanged, object: nil, queue: OperationQueue.main) { _ in
       self.updateAudioEqState()
     }
     observers.append(afChangeObserver)
@@ -318,10 +318,10 @@ class QuickSettingViewController: NSViewController, NSTableViewDataSource, NSTab
     let activeId: Int
     let columnName = tableColumn?.identifier
     if tableView == videoTableView {
-      track = row == 0 ? nil : player.info.videoTracks.at(row-1)
+      track = row == 0 ? nil : player.info.videoTracks[row-1]
       activeId = player.info.vid!
     } else if tableView == audioTableView {
-      track = row == 0 ? nil : player.info.audioTracks.at(row-1)
+      track = row == 0 ? nil : player.info.audioTracks[row-1]
       activeId = player.info.aid!
     } else if tableView == subTableView {
       track = row == 0 ? nil : player.info.subTracks.at(row-1)
@@ -584,8 +584,7 @@ class QuickSettingViewController: NSViewController, NSTableViewDataSource, NSTab
     if sender.selectedSegment == 0 {
       let currentDir = player.info.currentURL?.deletingLastPathComponent()
       Utility.quickOpenPanel(title: "Load external subtitle", isDir: false, dir: currentDir) { url in
-        // set a delay
-        self.player.loadExternalSubFile(url, delay: true)
+        self.player.loadExternalSubFile(url)
         self.subTableView.reloadData()
         self.secSubTableView.reloadData()
       }

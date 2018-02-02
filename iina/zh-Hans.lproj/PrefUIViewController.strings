@@ -142,7 +142,7 @@
 "duf-3s-3bL.title" = "不启用";
 
 /* Class = "NSButtonCell"; title = "Use physical resolution on Retina displays"; ObjectID = "fsj-YE-OB7"; */
-"fsj-YE-OB7.title" = "在 Retina 屏幕上使用物理分辨率";
+"fsj-YE-OB7.title" = "在视网膜屏幕上使用物理分辨率";
 
 /* Class = "NSTextFieldCell"; title = "On Screen Controller:"; ObjectID = "g06-Ja-Ot8"; */
 "g06-Ja-Ot8.title" = "播放控制:";

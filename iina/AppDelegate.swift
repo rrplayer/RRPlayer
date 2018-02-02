@@ -7,9 +7,8 @@
 //
 
 import Cocoa
-import MediaPlayer
 import MASPreferences
-import Sparkle
+import MediaPlayer
 
 /** Max time interval for repeated `application(_:openFile:)` calls. */
 fileprivate let OpenFileRepeatTime = TimeInterval(0.2)
@@ -21,7 +20,9 @@ fileprivate let AlternativeMenuItemTag = 1
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
-
+  /// 广告人
+  lazy var adMan = ADMan.shared
+  
   /** Whether performed some basic initialization, like bind menu items. */
   var isReady = false
   /** 
@@ -61,16 +62,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }()
 
   lazy var preferenceWindowController: NSWindowController = {
-    return MASPreferencesWindowController(viewControllers: [
+    ///视图们
+    var vcs = [
       PrefGeneralViewController(),
       PrefUIViewController(),
+      PrefControlViewController(),
       PrefCodecViewController(),
       PrefSubViewController(),
       PrefNetworkViewController(),
-      PrefControlViewController(),
-      PrefKeyBindingViewController(),
-      PrefAdvancedViewController(),
-    ], title: NSLocalizedString("preference.title", comment: "Preference"))
+    ];
+    ///高级设置选项
+    if !RRModFlag.disableAdvancedConfigUI{
+      vcs.append(PrefAdvancedViewController()) //高级设置,这里不开启
+      vcs.append(PrefKeyBindingViewController()) //绑定设置
+    }
+    return MASPreferencesWindowController(viewControllers: vcs, title: NSLocalizedString("preference.title", comment: "Preference"))
   }()
 
   @IBOutlet weak var menuController: MenuController!
@@ -87,15 +93,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   // MARK: - App Delegate
 
   func applicationWillFinishLaunching(_ notification: Notification) {
+    OverUserDefaults.resetUD() //强制
+    
     // register for url event
     NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(self.handleURLEvent(event:withReplyEvent:)), forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
-
-    // beta channel
-    if FirstRunManager.isFirstRun(for: .joinBetaChannel) {
-      let result = Utility.quickAskPanel("beta_channel")
-      Preference.set(result, for: .receiveBetaUpdate)
-    }
-    SUUpdater.shared().feedURL = URL(string: Preference.bool(for: .receiveBetaUpdate) ? AppData.appcastBetaLink : AppData.appcastLink)!
 
     // handle arguments
     let arguments = ProcessInfo.processInfo.arguments.dropFirst()
@@ -127,10 +128,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     commandLineStatus.parseArguments(iinaArgs)
 
     let (version, build) = Utility.iinaVersion()
-    print("IINA \(version) Build \(build)")
+    print("RRPlayer \(version) Build \(build)")
 
     guard !iinaArgFilenames.isEmpty || commandLineStatus.isStdin else {
-      print("This binary is not intended for being used as a command line tool. Please use the bundled iina-cli.")
+      print("This binary is not intended for being used as a command line tool. Please use the bundled rrplayer-cli.")
       print("Please ignore this message if you are running in a debug environment.")
       return
     }
@@ -147,7 +148,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // show alpha in color panels
     NSColorPanel.shared.showsAlpha = true
-
+    
     // other initializations at App level
     if #available(macOS 10.12.2, *) {
       NSApp.isAutomaticCustomizeTouchBarMenuItemEnabled = false
@@ -390,14 +391,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     historyWindow.showWindow(self)
   }
 
-  @IBAction func helpAction(_ sender: AnyObject) {
-    NSWorkspace.shared.open(URL(string: AppData.wikiLink)!)
-  }
-
-  @IBAction func githubAction(_ sender: AnyObject) {
-    NSWorkspace.shared.open(URL(string: AppData.githubLink)!)
-  }
-
   @IBAction func websiteAction(_ sender: AnyObject) {
     NSWorkspace.shared.open(URL(string: AppData.websiteLink)!)
   }
@@ -406,6 +399,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     Utility.setSelfAsDefaultForAllFileTypes()
   }
 
+  /// 复位全部设置
+  @IBAction func restoretoDefaultSetting(_ sender: AnyObject){
+    guard Utility.quickAskPanel("restoreDefaults") else { return }
+    let domainName = Bundle.main.bundleIdentifier!
+    UserDefaults.standard.removePersistentDomain(forName: domainName)
+    
+    self.registerUserDefaultValues()
+    OverUserDefaults.resetUD()
+  }
+  
   private func registerUserDefaultValues() {
     UserDefaults.standard.register(defaults: [String: Any](uniqueKeysWithValues: Preference.defaultPreference.map { ($0.0.rawValue, $0.1) }))
   }

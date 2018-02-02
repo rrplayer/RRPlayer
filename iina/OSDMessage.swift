@@ -71,6 +71,9 @@ enum OSDMessage {
   case networkError
   case canceled
 
+  //MARK: 广告引入-开始提醒
+  case playAfterAD //从广告开始播放
+  case clickedAD //点击了广告
 
   func message() -> (String, OSDType) {
     switch self {
@@ -297,6 +300,15 @@ enum OSDMessage {
         NSLocalizedString("osd.canceled", comment: "Canceled"),
         .normal
       )
+      
+    //MARK: 广告注入: 播放开始提醒
+    case .playAfterAD:
+      return ("开始播放", .normal)
+      
+    case .clickedAD:
+      return ("感谢你的支持!", .normal)
+      
     }
+    
   }
 }

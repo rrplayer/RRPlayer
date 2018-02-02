@@ -35,7 +35,6 @@ struct Preference {
 
     init?(rawValue: RawValue) { self.rawValue = rawValue }
 
-    static let receiveBetaUpdate = Key("receiveBetaUpdate")
 
     static let actionAfterLaunch = Key("actionAfterLaunch")
     static let alwaysOpenInNewWindow = Key("alwaysOpenInNewWindow")
@@ -568,33 +567,32 @@ struct Preference {
   // MARK: - Defaults
 
   static let defaultPreference: [Preference.Key: Any] = [
-    .receiveBetaUpdate: false,
     .actionAfterLaunch: ActionAfterLaunch.welcomeWindow.rawValue,
     .alwaysOpenInNewWindow: true,
     .enableCmdN: false,
-    .recordPlaybackHistory: true,
-    .recordRecentFiles: true,
-    .trackAllFilesInRecentOpenMenu: true,
+    .recordPlaybackHistory: false, //历史记录,不记路
+    .recordRecentFiles: true, //最近文件,可以
+    .trackAllFilesInRecentOpenMenu: true, //历史记录
     .controlBarPositionHorizontal: Float(0.5),
     .controlBarPositionVertical: Float(0.1),
     .controlBarStickToCenter: true,
     .controlBarAutoHideTimeout: Float(2.5),
-    .oscPosition: OSCPosition.floating.rawValue,
+    .oscPosition: OSCPosition.bottom.rawValue, //默认底部
     .playlistWidth: 270,
     .themeMaterial: Theme.dark.rawValue,
     .osdAutoHideTimeout: Float(1),
     .osdTextSize: Float(20),
     .softVolume: 100,
-    .arrowButtonAction: ArrowButtonAction.speed.rawValue,
+    .arrowButtonAction: ArrowButtonAction.playlist.rawValue, //播放列表锁死
     .pauseWhenOpen: false,
     .fullScreenWhenOpen: false,
     .useLegacyFullScreen: false,
     .legacyFullScreenAnimation: false,
     .showChapterPos: false,
-    .resumeLastPosition: true,
+    .resumeLastPosition: false, //恢复播放
     .useMediaKeys: true,
     .useAppleRemote: false,
-    .alwaysFloatOnTop: false,
+    .alwaysFloatOnTop: false, //浮动
     .blackOutMonitor: false,
     .pauseWhenMinimized: false,
     .pauseWhenInactive: false,
@@ -605,13 +603,13 @@ struct Preference {
     .playlistAutoPlayNext: true,
 
     .usePhysicalResolution: true,
-    .initialWindowSizePosition: "",
+    .initialWindowSizePosition: "900", //默认"", "900" = 宽900
     .resizeWindowTiming: ResizeWindowTiming.onlyWhenOpen.rawValue,
     .resizeWindowOption: ResizeWindowOption.videoSize10.rawValue,
     .showRemainingTime: false,
-    .enableThumbnailPreview: true,
+    .enableThumbnailPreview: false, //可能导致后台线程一直去处理错误文件
     .maxThumbnailPreviewCacheSize: 500,
-    .autoSwitchToMusicMode: true,
+    .autoSwitchToMusicMode: false, //自动音乐模式不要
     .displayTimeAndBatteryInFullScreen: false,
 
     .videoThreads: 0,
@@ -676,21 +674,21 @@ struct Preference {
     .userDefinedConfDir: "~/.config/mpv/",
 
     .keepOpenOnFileEnd: true,
-    .quitWhenNoOpenedWindow: false,
+    .quitWhenNoOpenedWindow: true, //最后窗口退出
     .useExactSeek: SeekOption.relative.rawValue,
     .followGlobalSeekTypeWhenAdjustSlider: false,
     .relativeSeekAmount: 3,
     .volumeScrollAmount: 3,
     .verticalScrollAction: ScrollAction.volume.rawValue,
-    .horizontalScrollAction: ScrollAction.seek.rawValue,
-    .singleClickAction: MouseClickAction.hideOSC.rawValue,
+    .horizontalScrollAction: ScrollAction.none.rawValue, //横向不要
+    .singleClickAction: MouseClickAction.none.rawValue, //默认是hideOSC取消了
     .doubleClickAction: MouseClickAction.fullscreen.rawValue,
-    .rightClickAction: MouseClickAction.pause.rawValue,
+    .rightClickAction: MouseClickAction.none.rawValue, //默认是暂停,取消了
     .middleClickAction: MouseClickAction.none.rawValue,
     .pinchAction: PinchAction.windowSize.rawValue,
     .forceTouchAction: MouseClickAction.none.rawValue,
 
-    .screenshotFolder: "~/Pictures/Screenshots",
+    .screenshotFolder: "~/Pictures/RRPlayer", //默认截图目录
     .screenshotIncludeSubtitle: true,
     .screenshotFormat: ScreenshotFormat.png.rawValue,
     .screenshotTemplate: "%F-%n",
